@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+    <linearGradient id="roofGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#d97706" />
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#0284c7" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+
+  <!-- Background with rounded squircle -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" />
+
+  <!-- Blueprint Grid Pattern Subdued -->
+  <path d="M 64 128 H 448 M 64 192 H 448 M 64 256 H 448 M 64 320 H 448 M 64 384 H 448" stroke="#334155" stroke-width="2" stroke-dasharray="4 8" opacity="0.4" />
+  <path d="M 128 64 V 448 M 192 64 V 448 M 256 64 V 448 M 320 64 V 448 M 384 64 V 448" stroke="#334155" stroke-width="2" stroke-dasharray="4 8" opacity="0.4" />
+
+  <!-- Construction House Silhouette -->
+  <g filter="url(#shadow)">
+    <!-- Roof -->
+    <path d="M 96 230 L 256 96 L 416 230 L 380 230 L 256 128 L 132 230 Z" fill="url(#roofGrad)" />
+    
+    <!-- Chimney / Pillar -->
+    <rect x="330" y="128" width="36" height="60" fill="#b45309" rx="4" />
+
+    <!-- Walls -->
+    <rect x="136" y="230" width="240" height="170" fill="#f8fafc" rx="8" />
+
+    <!-- Foundation Slab -->
+    <rect x="116" y="396" width="280" height="24" fill="#94a3b8" rx="6" />
+
+    <!-- Door -->
+    <rect x="226" y="296" width="60" height="100" fill="#0f172a" rx="4" />
+    <circle cx="276" cy="348" r="4" fill="#f59e0b" />
+
+    <!-- Windows -->
+    <rect x="160" y="270" width="46" height="50" fill="url(#accentGrad)" rx="4" />
+    <line x1="183" y1="270" x2="183" y2="320" stroke="#f8fafc" stroke-width="3" />
+    <line x1="160" y1="295" x2="206" y2="295" stroke="#f8fafc" stroke-width="3" />
+
+    <rect x="306" y="270" width="46" height="50" fill="url(#accentGrad)" rx="4" />
+    <line x1="329" y1="270" x2="329" y2="320" stroke="#f8fafc" stroke-width="3" />
+    <line x1="306" y1="295" x2="352" y2="295" stroke="#f8fafc" stroke-width="3" />
+
+    <!-- Badge Text RAB PRO -->
+    <rect x="176" y="428" width="160" height="36" rx="8" fill="#d97706" />
+    <text x="256" y="452" font-family="sans-serif" font-weight="900" font-size="20" fill="#ffffff" text-anchor="middle" letter-spacing="3">RAB PRO</text>
+  </g>
+</svg>

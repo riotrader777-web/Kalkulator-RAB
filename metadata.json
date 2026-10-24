@@ -1,0 +1,8 @@
+{
+  "name": "Remix Kalkulator RAB Bangun Rumah",
+  "description": "Aplikasi Rencana Anggaran Biaya (RAB) pembangunan rumah 1 \u0026 2 lantai, kalkulasi volume material, edit harga manual, pilihan borongan vs upah, dan manajemen proyek tersimpan.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
