@@ -1,16 +1,20 @@
 import React, { useState } from 'react';
 import { CalculationBreakdown } from '../types/rab';
 import { formatNumber, formatRupiah } from '../utils/calculator';
-import { FileSpreadsheet, ChevronDown, ChevronRight } from 'lucide-react';
+import { FileSpreadsheet, ChevronDown, ChevronRight, Calculator, Printer } from 'lucide-react';
 
 interface BoQTableProps {
   calculation: CalculationBreakdown;
   isLaborOnly: boolean;
+  onNavigateToAHSP?: () => void;
+  onNavigateToPrint?: () => void;
 }
 
 export const BoQTable: React.FC<BoQTableProps> = ({
   calculation,
   isLaborOnly,
+  onNavigateToAHSP,
+  onNavigateToPrint,
 }) => {
   const [collapsedCategories, setCollapsedCategories] = useState<Record<string, boolean>>({});
 
@@ -46,18 +50,38 @@ export const BoQTable: React.FC<BoQTableProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {onNavigateToAHSP && (
+            <button
+              type="button"
+              onClick={onNavigateToAHSP}
+              className="text-xs px-2.5 py-1.5 rounded-lg bg-amber-50 text-amber-900 border border-amber-300 font-semibold hover:bg-amber-100 flex items-center gap-1"
+            >
+              <Calculator className="w-3.5 h-3.5 text-amber-600" />
+              <span>Analisa AHSP (SNI)</span>
+            </button>
+          )}
+          {onNavigateToPrint && (
+            <button
+              type="button"
+              onClick={onNavigateToPrint}
+              className="text-xs px-2.5 py-1.5 rounded-lg bg-slate-900 text-white font-semibold hover:bg-slate-800 flex items-center gap-1"
+            >
+              <Printer className="w-3.5 h-3.5 text-amber-400" />
+              <span>Cetak / Export</span>
+            </button>
+          )}
           <button
             type="button"
             onClick={expandAll}
-            className="text-xs px-2.5 py-1 rounded border border-slate-200 text-slate-600 hover:bg-slate-50"
+            className="text-xs px-2.5 py-1.5 rounded border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium"
           >
             Buka Semua
           </button>
           <button
             type="button"
             onClick={collapseAll}
-            className="text-xs px-2.5 py-1 rounded border border-slate-200 text-slate-600 hover:bg-slate-50"
+            className="text-xs px-2.5 py-1.5 rounded border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium"
           >
             Tutup Semua
           </button>

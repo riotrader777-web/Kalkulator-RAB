@@ -107,7 +107,7 @@ export const HouseElevationDiagram: React.FC<HouseElevationDiagramProps> = ({
             ± 0.00 Muka Tanah
           </text>
 
-          {/* Foundation: Batu Kali Menerus */}
+          {/* Foundation: Batu Kali Rollag / Menerus */}
           <polygon
             points={`${houseX - 15},${groundY} ${houseX + 35},${groundY} ${houseX + 45},${groundY + 45} ${houseX - 25},${groundY + 45}`}
             fill="url(#stonePattern)"
@@ -120,37 +120,117 @@ export const HouseElevationDiagram: React.FC<HouseElevationDiagramProps> = ({
             stroke="#475569"
             strokeWidth="1.2"
           />
-          <text x={houseX - 5} y={groundY + 30} fill="#334155" fontSize="9" fontWeight="600">
-            Pondasi
+          <polygon
+            points={`${houseX + houseW / 2 - 25},${groundY} ${houseX + houseW / 2 + 25},${groundY} ${houseX + houseW / 2 + 35},${groundY + 45} ${houseX + houseW / 2 - 35},${groundY + 45}`}
+            fill="url(#stonePattern)"
+            stroke="#475569"
+            strokeWidth="1.2"
+          />
+          <text x={houseX - 5} y={groundY + 30} fill="#334155" fontSize="8" fontWeight="600">
+            Batu Kali
           </text>
 
-          {/* Footplate Cakar Ayam (for 2 Floors) */}
-          {is2Floors && (
+          {/* Dynamic Foundation Elements (Footplat, Cakar Ayam, Strauss Pile) */}
+          {calculation.foundationType === 'footplat' && (
             <>
-              <rect
-                x={houseX - 20}
-                y={groundY + 42}
-                width="50"
-                height="18"
-                fill="url(#concretePattern)"
-                stroke="#1e293b"
-                strokeWidth="1.2"
-                rx="2"
-              />
-              <rect
-                x={houseX + houseW - 30}
-                y={groundY + 42}
-                width="50"
-                height="18"
-                fill="url(#concretePattern)"
-                stroke="#1e293b"
-                strokeWidth="1.2"
-                rx="2"
-              />
-              <text x={houseX - 15} y={groundY + 54} fill="#0f172a" fontSize="7.5" fontWeight="bold">
-                Footplate
+              {/* Footplat Pad under left, middle, right columns */}
+              {[houseX - 8, houseX + houseW / 2 - 16, houseX + houseW - 24].map((xPos, idx) => (
+                <g key={`footplat-${idx}`}>
+                  <rect
+                    x={xPos - 12}
+                    y={groundY + 42}
+                    width="44"
+                    height="16"
+                    fill="url(#concretePattern)"
+                    stroke="#0f172a"
+                    strokeWidth="1.2"
+                    rx="1.5"
+                  />
+                  {/* Single layer rebar wire */}
+                  <line x1={xPos - 8} y1={groundY + 50} x2={xPos + 28} y2={groundY + 50} stroke="#d97706" strokeWidth="1.5" strokeDasharray="3 2" />
+                </g>
+              ))}
+              <text x={houseX - 18} y={groundY + 54} fill="#92400e" fontSize="7.5" fontWeight="bold">
+                Footplat
               </text>
             </>
+          )}
+
+          {calculation.foundationType === 'cakar_ayam' && (
+            <>
+              {/* Cakar Ayam Rigid Double Grid Pad */}
+              {[houseX - 8, houseX + houseW / 2 - 16, houseX + houseW - 24].map((xPos, idx) => (
+                <g key={`cakar-${idx}`}>
+                  <rect
+                    x={xPos - 18}
+                    y={groundY + 40}
+                    width="56"
+                    height="20"
+                    fill="#475569"
+                    stroke="#0f172a"
+                    strokeWidth="1.5"
+                    rx="2"
+                  />
+                  {/* Double mesh rebar indication */}
+                  <line x1={xPos - 14} y1={groundY + 45} x2={xPos + 34} y2={groundY + 45} stroke="#f59e0b" strokeWidth="1.5" />
+                  <line x1={xPos - 14} y1={groundY + 54} x2={xPos + 34} y2={groundY + 54} stroke="#f59e0b" strokeWidth="1.5" />
+                  {/* Vertical claw anchors */}
+                  <line x1={xPos - 8} y1={groundY + 43} x2={xPos - 8} y2={groundY + 57} stroke="#f59e0b" strokeWidth="1.2" />
+                  <line x1={xPos + 10} y1={groundY + 43} x2={xPos + 10} y2={groundY + 57} stroke="#f59e0b" strokeWidth="1.2" />
+                  <line x1={xPos + 28} y1={groundY + 43} x2={xPos + 28} y2={groundY + 57} stroke="#f59e0b" strokeWidth="1.2" />
+                </g>
+              ))}
+              <text x={houseX - 22} y={groundY + 56} fill="#b45309" fontSize="7.5" fontWeight="bold">
+                Cakar Ayam Dobel
+              </text>
+            </>
+          )}
+
+          {calculation.foundationType === 'strauss_pile' && (
+            <>
+              {/* Strauss Pile: Pile cap + Deep bored cylinder */}
+              {[houseX - 8, houseX + houseW / 2 - 16, houseX + houseW - 24].map((xPos, idx) => (
+                <g key={`strauss-${idx}`}>
+                  {/* Pile Cap */}
+                  <rect
+                    x={xPos - 12}
+                    y={groundY + 40}
+                    width="44"
+                    height="14"
+                    fill="#334155"
+                    stroke="#0f172a"
+                    strokeWidth="1.2"
+                    rx="1"
+                  />
+                  {/* Bored Pile Cylinder */}
+                  <rect
+                    x={xPos}
+                    y={groundY + 54}
+                    width="20"
+                    height="32"
+                    fill="url(#concretePattern)"
+                    stroke="#1e293b"
+                    strokeWidth="1.2"
+                  />
+                  {/* Spiral rebar indication */}
+                  <path
+                    d={`M ${xPos + 2} ${groundY + 58} Q ${xPos + 10} ${groundY + 62} ${xPos + 18} ${groundY + 58} Q ${xPos + 10} ${groundY + 68} ${xPos + 2} ${groundY + 74} Q ${xPos + 10} ${groundY + 80} ${xPos + 18} ${groundY + 84}`}
+                    fill="none"
+                    stroke="#f59e0b"
+                    strokeWidth="1.2"
+                  />
+                </g>
+              ))}
+              <text x={houseX - 24} y={groundY + 56} fill="#b45309" fontSize="7.5" fontWeight="bold">
+                Strauss Pile Ø25
+              </text>
+            </>
+          )}
+
+          {calculation.foundationType === 'batu_kali' && (
+            <text x={houseX - 18} y={groundY + 54} fill="#475569" fontSize="7.5" fontWeight="bold">
+              Tanpa Titik Tapak
+            </text>
           )}
 
           {/* Sloof Beton Lantai 1 */}
@@ -583,7 +663,7 @@ export const HouseElevationDiagram: React.FC<HouseElevationDiagramProps> = ({
         </svg>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3 pt-3 border-t border-slate-100 text-xs">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mt-3 pt-3 border-t border-slate-100 text-xs">
         <div>
           <span className="text-slate-400 block text-[11px]">Luas Dinding Netto</span>
           <span className="font-bold text-slate-800 tabular-nums">{calculation.totalWallArea} m²</span>
@@ -599,11 +679,22 @@ export const HouseElevationDiagram: React.FC<HouseElevationDiagramProps> = ({
           </span>
         </div>
         <div>
+          <span className="text-slate-400 block text-[11px]">Sistem Pondasi</span>
+          <span className="font-bold text-amber-900 block truncate">
+            {calculation.foundationType === 'cakar_ayam' ? 'Cakar Ayam Dobel' :
+             calculation.foundationType === 'footplat' ? 'Footplat Telapak' :
+             calculation.foundationType === 'strauss_pile' ? 'Strauss Pile Ø25' : 'Batu Kali Saja'}
+          </span>
+          <span className="text-[10px] text-slate-500">
+            {calculation.foundationPoints > 0 ? `${calculation.foundationPoints} Titik (${calculation.foundationConcreteVol} m³ Cor)` : 'Tanpa Titik Cor'}
+          </span>
+        </div>
+        <div>
           <span className="text-slate-400 block text-[11px]">Status Plafon</span>
-          <span className={`font-semibold ${hasCeiling ? (project.ceilingType === 'pvc' ? 'text-amber-800' : 'text-sky-700') : 'text-slate-500'}`}>
+          <span className={`font-semibold block ${hasCeiling ? (project.ceilingType === 'pvc' ? 'text-amber-800' : 'text-sky-700') : 'text-slate-500'}`}>
             {hasCeiling 
               ? (project.ceilingType === 'pvc' ? 'Plafon PVC Tahan Air' : 'Plafon Gypsum 9mm') 
-              : 'Tanpa Plafon (Ngaci Saja)'}
+              : 'Tanpa Plafon'}
           </span>
         </div>
       </div>

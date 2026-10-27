@@ -71,13 +71,22 @@ export const DEFAULT_MATERIALS: MaterialItem[] = [
     description: 'Perekat instan khusus bata ringan hebel (hemat spesi 3mm)',
   },
   {
-    id: 'semen_acian_instant',
-    name: 'Semen Acian Instan / Skimcoat (40 Kg)',
+    id: 'semen_acian_50kg',
+    name: 'Semen Acian Instan / Skimcoat 50 Kg (Anti-Retak Rambut)',
     category: 'agregat_semen',
-    unit: 'sak',
+    unit: 'sak (50kg)',
+    defaultPrice: 98000,
+    currentPrice: 98000,
+    description: 'Semen acian instan sak 50 Kg daya sebar ± 20-21 m² (tebal 1.5-2mm), siap cat tanpa plamir',
+  },
+  {
+    id: 'semen_acian_instant',
+    name: 'Semen Acian Instan / Skimcoat 40 Kg',
+    category: 'agregat_semen',
+    unit: 'sak (40kg)',
     defaultPrice: 82000,
     currentPrice: 82000,
-    description: 'Acian halus anti-retak rambut siap cat setelah kering',
+    description: 'Acian halus anti-retak rambut siap cat setelah kering (sak 40kg daya sebar ± 16-17 m²)',
   },
 
   // 2. Dinding
@@ -527,6 +536,7 @@ export const DEFAULT_PROJECT: SavedProject = {
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
   cementBagWeight: 50, // Semen 50kg per sak
+  acianBagWeight: 50, // Semen acian 50kg per sak
   floors: 1,
   houseLength: 10,
   houseWidth: 6,
@@ -535,6 +545,7 @@ export const DEFAULT_PROJECT: SavedProject = {
   wallHeight: 3.5, // Ketinggian rumah default 3.5 meter
   wallType: 'hebel',
   ceilingType: 'gypsum',
+  foundationType: 'footplat',
   ratePerM2: 3650000,
   useManualBenchmark: false,
   scopeMode: 'turnkey',

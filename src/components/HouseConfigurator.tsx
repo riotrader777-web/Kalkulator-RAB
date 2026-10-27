@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { SavedProject, ScopeMode, WallMaterialType, CementBagWeight, CeilingMaterialType } from '../types/rab';
+import { SavedProject, ScopeMode, WallMaterialType, CementBagWeight, CeilingMaterialType, AcianBagWeight, FoundationType } from '../types/rab';
 import { formatRupiah, calculatePackageComparison } from '../utils/calculator';
 import { 
   Building2, 
@@ -15,7 +15,9 @@ import {
   Package, 
   Table2, 
   Sparkles,
-  ArrowRight
+  ArrowRight,
+  Anchor,
+  Boxes
 } from 'lucide-react';
 
 interface HouseConfiguratorProps {
@@ -189,43 +191,91 @@ export const HouseConfigurator: React.FC<HouseConfiguratorProps> = ({
             </div>
           </div>
 
-          {/* PILIHAN BOBOT SAK SEMEN (50KG SEBAGAI STANDAR UTAMA) */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-2 flex items-center justify-between">
-              <span>Standar Sak Semen</span>
-              <span className="text-[10px] text-amber-700 font-bold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
-                {project.cementBagWeight || 50} Kg / Sak
-              </span>
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => updateProject({ cementBagWeight: 50 as CementBagWeight })}
-                className={`py-2 px-3 text-xs rounded-lg border text-left transition-all ${
-                  (project.cementBagWeight || 50) === 50
-                    ? 'border-amber-600 bg-amber-50/70 text-amber-950 font-bold'
-                    : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
-                }`}
-              >
-                <div className="font-semibold flex items-center gap-1">
-                  <PackageCheck className="w-3.5 h-3.5 text-amber-600" />
-                  <span>Semen 50 Kg</span>
-                </div>
-                <div className="text-[10px] text-slate-500">Standar sak besar</div>
-              </button>
+          {/* PILIHAN BOBOT SAK SEMEN (PORTLAND & ACIAN 50KG) */}
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center justify-between">
+                <span>Semen Portland (Cor & Pasang)</span>
+                <span className="text-[10px] text-amber-700 font-bold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                  {project.cementBagWeight || 50} Kg / Sak
+                </span>
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => updateProject({ cementBagWeight: 50 as CementBagWeight })}
+                  className={`py-1.5 px-2.5 text-xs rounded-lg border text-left transition-all ${
+                    (project.cementBagWeight || 50) === 50
+                      ? 'border-amber-600 bg-amber-50/70 text-amber-950 font-bold shadow-2xs'
+                      : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                  }`}
+                >
+                  <div className="font-semibold flex items-center gap-1">
+                    <PackageCheck className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Semen 50 Kg</span>
+                  </div>
+                  <div className="text-[10px] text-slate-500">Standar sak besar</div>
+                </button>
 
-              <button
-                type="button"
-                onClick={() => updateProject({ cementBagWeight: 40 as CementBagWeight })}
-                className={`py-2 px-3 text-xs rounded-lg border text-left transition-all ${
-                  project.cementBagWeight === 40
-                    ? 'border-amber-600 bg-amber-50/70 text-amber-950 font-bold'
-                    : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
-                }`}
-              >
-                <div className="font-semibold">Semen 40 Kg</div>
-                <div className="text-[10px] text-slate-500">Sak 40 Kg opsional</div>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => updateProject({ cementBagWeight: 40 as CementBagWeight })}
+                  className={`py-1.5 px-2.5 text-xs rounded-lg border text-left transition-all ${
+                    project.cementBagWeight === 40
+                      ? 'border-amber-600 bg-amber-50/70 text-amber-950 font-bold shadow-2xs'
+                      : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                  }`}
+                >
+                  <div className="font-semibold">Semen 40 Kg</div>
+                  <div className="text-[10px] text-slate-500">Sak 40 Kg opsional</div>
+                </button>
+              </div>
+            </div>
+
+            {/* PILIHAN BOBOT SAK SEMEN ACIAN (50KG vs 40KG) */}
+            <div className="pt-2 border-t border-slate-100">
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center justify-between">
+                <span className="flex items-center gap-1">
+                  <span>Semen Acian Dinding</span>
+                  <span className="text-[9px] bg-amber-100 text-amber-800 font-bold px-1 py-0.2 rounded">Tersedia 50kg</span>
+                </span>
+                <span className="text-[10px] text-amber-700 font-bold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                  {project.acianBagWeight || 50} Kg / Sak
+                </span>
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => updateProject({ acianBagWeight: 50 as AcianBagWeight })}
+                  className={`py-1.5 px-2.5 text-xs rounded-lg border text-left transition-all ${
+                    (project.acianBagWeight || 50) === 50
+                      ? 'border-amber-600 bg-amber-50/70 text-amber-950 font-bold shadow-2xs ring-1 ring-amber-500/30'
+                      : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                  }`}
+                >
+                  <div className="font-semibold flex items-center justify-between">
+                    <span className="flex items-center gap-1">
+                      <PackageCheck className="w-3.5 h-3.5 text-amber-600" />
+                      <span>Acian 50 Kg</span>
+                    </span>
+                    {(project.acianBagWeight || 50) === 50 && <CheckCircle2 className="w-3 h-3 text-amber-600" />}
+                  </div>
+                  <div className="text-[10px] text-slate-500">Daya sebar ±21 m²/sak</div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => updateProject({ acianBagWeight: 40 as AcianBagWeight })}
+                  className={`py-1.5 px-2.5 text-xs rounded-lg border text-left transition-all ${
+                    project.acianBagWeight === 40
+                      ? 'border-amber-600 bg-amber-50/70 text-amber-950 font-bold shadow-2xs'
+                      : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
+                  }`}
+                >
+                  <div className="font-semibold">Acian 40 Kg</div>
+                  <div className="text-[10px] text-slate-500">Daya sebar ±17 m²/sak</div>
+                </button>
+              </div>
             </div>
 
             {/* Material Dinding & Plafon */}
@@ -428,6 +478,225 @@ export const HouseConfigurator: React.FC<HouseConfiguratorProps> = ({
               )}
             </div>
           )}
+        </div>
+
+        {/* 2. PILIHAN JENIS PONDASI RUMAH (FOOTPLAT vs CAKAR AYAM vs BATU KALI vs STRAUSS PILE) */}
+        <div className="mt-5 pt-4 border-t border-slate-100">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+            <div className="flex items-center gap-2">
+              <span className="w-6 h-6 rounded-md bg-amber-600 text-white flex items-center justify-center">
+                <Anchor className="w-3.5 h-3.5" />
+              </span>
+              <div>
+                <h3 className="text-xs font-bold text-slate-900 flex items-center gap-2">
+                  <span>Pilihan Jenis Pondasi Rumah</span>
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300">
+                    Otomatis Menyesuaikan Besi & Cor
+                  </span>
+                </h3>
+                <p className="text-[11px] text-slate-500">
+                  Pilih sistem pondasi yang digunakan. Volume besi beton, semen cor, pasir beton, dan batu split akan otomatis terhitung ulang.
+                </p>
+              </div>
+            </div>
+
+            {/* Quick Live Stats Badge */}
+            <div className="flex items-center gap-2 shrink-0 text-[11px]">
+              <span className="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md border border-slate-200 font-medium flex items-center gap-1">
+                <span className="text-slate-400">Titik:</span>
+                <strong className="text-slate-900 font-bold tabular-nums">
+                  {(project.foundationType || (project.floors === 2 ? 'cakar_ayam' : 'footplat')) === 'batu_kali'
+                    ? '0 Titik (Menerus)' 
+                    : `${Math.max(6, Math.round((project.groundFloorArea || 60) / 5.5))} Titik`}
+                </strong>
+              </span>
+              <span className="bg-amber-50 text-amber-900 px-2.5 py-1 rounded-md border border-amber-200 font-medium flex items-center gap-1">
+                <span className="text-amber-600">Cor:</span>
+                <strong className="text-amber-950 font-bold tabular-nums">
+                  {(() => {
+                    const fType = project.foundationType || (project.floors === 2 ? 'cakar_ayam' : 'footplat');
+                    const pts = fType === 'batu_kali' ? 0 : Math.max(6, Math.round((project.groundFloorArea || 60) / 5.5));
+                    const perPt = fType === 'cakar_ayam' ? (project.floors === 2 ? 0.25 : 0.16) : fType === 'footplat' ? (project.floors === 2 ? 0.16 : 0.095) : fType === 'strauss_pile' ? 0.304 : 0;
+                    return (pts * perPt).toFixed(1);
+                  })()} m³
+                </strong>
+              </span>
+            </div>
+          </div>
+
+          {/* Foundation Cards Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {/* 1. Footplat */}
+            {(() => {
+              const activeF = project.foundationType || (project.floors === 2 ? 'cakar_ayam' : 'footplat');
+              const isSelected = activeF === 'footplat';
+              return (
+                <button
+                  type="button"
+                  onClick={() => updateProject({ foundationType: 'footplat' as FoundationType })}
+                  className={`p-3.5 rounded-xl border text-left transition-all relative flex flex-col justify-between ${
+                    isSelected
+                      ? 'border-amber-600 bg-amber-50/70 text-slate-900 shadow-sm ring-1 ring-amber-500'
+                      : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50/50'
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs font-bold text-slate-900">Footplat (Telapak Plat)</span>
+                      {isSelected ? (
+                        <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0" />
+                      ) : (
+                        <div className="w-4 h-4 rounded-full border border-slate-300 shrink-0" />
+                      )}
+                    </div>
+                    <div className="text-[11px] font-semibold text-amber-800 mb-1">
+                      {project.floors === 2 ? 'Ukuran 80×80 cm (Besi D12)' : 'Ukuran 60×60 cm (Besi D10/12)'}
+                    </div>
+                    <p className="text-[11px] text-slate-500 leading-snug">
+                      Plat telapak beton bertulang tapak tunggal di bawah setiap kolom struktur + pasangan batu kali keliling.
+                    </p>
+                  </div>
+                  <div className="mt-3 pt-2.5 border-t border-slate-200/60 flex items-center justify-between text-[10px]">
+                    <span className="text-slate-500">Hemat & Efisien</span>
+                    <span className={`px-1.5 py-0.5 rounded font-semibold ${isSelected ? 'bg-amber-200/70 text-amber-900' : 'bg-slate-100 text-slate-600'}`}>
+                      {project.floors === 1 ? 'Sangat Populer' : 'Standard 2 Lt'}
+                    </span>
+                  </div>
+                </button>
+              );
+            })()}
+
+            {/* 2. Cakar Ayam */}
+            {(() => {
+              const activeF = project.foundationType || (project.floors === 2 ? 'cakar_ayam' : 'footplat');
+              const isSelected = activeF === 'cakar_ayam';
+              return (
+                <button
+                  type="button"
+                  onClick={() => updateProject({ foundationType: 'cakar_ayam' as FoundationType })}
+                  className={`p-3.5 rounded-xl border text-left transition-all relative flex flex-col justify-between ${
+                    isSelected
+                      ? 'border-amber-600 bg-amber-50/70 text-slate-900 shadow-sm ring-1 ring-amber-500'
+                      : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50/50'
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs font-bold text-slate-900">Cakar Ayam (Tulangan Dobel)</span>
+                      {isSelected ? (
+                        <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0" />
+                      ) : (
+                        <div className="w-4 h-4 rounded-full border border-slate-300 shrink-0" />
+                      )}
+                    </div>
+                    <div className="text-[11px] font-semibold text-amber-800 mb-1">
+                      {project.floors === 2 ? 'Ukuran 100×100 cm (Dobel Grid D12)' : 'Ukuran 80×80 cm (Dobel Grid D12)'}
+                    </div>
+                    <p className="text-[11px] text-slate-500 leading-snug">
+                      Tulangan rangkap 2 lapis (dobel mesh) dengan cakar/angkur pengaku. Kekakuan tinggi untuk 2 lantai & tanah lunak.
+                    </p>
+                  </div>
+                  <div className="mt-3 pt-2.5 border-t border-slate-200/60 flex items-center justify-between text-[10px]">
+                    <span className="text-slate-500">+45% Pembesian</span>
+                    <span className={`px-1.5 py-0.5 rounded font-semibold ${isSelected ? 'bg-amber-200/70 text-amber-900' : 'bg-slate-100 text-slate-600'}`}>
+                      {project.floors === 2 ? 'Rekomendasi 2 Lt' : 'Ekstra Kokoh'}
+                    </span>
+                  </div>
+                </button>
+              );
+            })()}
+
+            {/* 3. Batu Kali Menerus */}
+            {(() => {
+              const activeF = project.foundationType || (project.floors === 2 ? 'cakar_ayam' : 'footplat');
+              const isSelected = activeF === 'batu_kali';
+              return (
+                <button
+                  type="button"
+                  onClick={() => updateProject({ foundationType: 'batu_kali' as FoundationType })}
+                  className={`p-3.5 rounded-xl border text-left transition-all relative flex flex-col justify-between ${
+                    isSelected
+                      ? 'border-amber-600 bg-amber-50/70 text-slate-900 shadow-sm ring-1 ring-amber-500'
+                      : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50/50'
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs font-bold text-slate-900">Batu Kali Menerus Saja</span>
+                      {isSelected ? (
+                        <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0" />
+                      ) : (
+                        <div className="w-4 h-4 rounded-full border border-slate-300 shrink-0" />
+                      )}
+                    </div>
+                    <div className="text-[11px] font-semibold text-amber-800 mb-1">
+                      Profil Menerus Penahan Penuh
+                    </div>
+                    <p className="text-[11px] text-slate-500 leading-snug">
+                      Hanya lajur batu belah menerus tanpa titik tapak beton cor. Volume batu belah lebih tebal, tanpa besi tapak.
+                    </p>
+                  </div>
+                  <div className="mt-3 pt-2.5 border-t border-slate-200/60 flex items-center justify-between text-[10px]">
+                    <span className="text-slate-500">Tanpa Cor Tapak</span>
+                    <span className={`px-1.5 py-0.5 rounded font-semibold ${isSelected ? 'bg-amber-200/70 text-amber-900' : 'bg-slate-100 text-slate-600'}`}>
+                      Khusus 1 Lantai
+                    </span>
+                  </div>
+                </button>
+              );
+            })()}
+
+            {/* 4. Strauss Pile */}
+            {(() => {
+              const activeF = project.foundationType || (project.floors === 2 ? 'cakar_ayam' : 'footplat');
+              const isSelected = activeF === 'strauss_pile';
+              return (
+                <button
+                  type="button"
+                  onClick={() => updateProject({ foundationType: 'strauss_pile' as FoundationType })}
+                  className={`p-3.5 rounded-xl border text-left transition-all relative flex flex-col justify-between ${
+                    isSelected
+                      ? 'border-amber-600 bg-amber-50/70 text-slate-900 shadow-sm ring-1 ring-amber-500'
+                      : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50/50'
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs font-bold text-slate-900">Strauss Pile (Tiang Bor)</span>
+                      {isSelected ? (
+                        <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0" />
+                      ) : (
+                        <div className="w-4 h-4 rounded-full border border-slate-300 shrink-0" />
+                      )}
+                    </div>
+                    <div className="text-[11px] font-semibold text-amber-800 mb-1">
+                      Ø25 cm Dalam 4m + Pile Cap
+                    </div>
+                    <p className="text-[11px] text-slate-500 leading-snug">
+                      Pondasi dalam tiang bor tanah manual sampai tanah keras + pile cap beton bertulang penyambung kolom & sloof.
+                    </p>
+                  </div>
+                  <div className="mt-3 pt-2.5 border-t border-slate-200/60 flex items-center justify-between text-[10px]">
+                    <span className="text-slate-500">Beban Tertinggi</span>
+                    <span className={`px-1.5 py-0.5 rounded font-semibold ${isSelected ? 'bg-amber-200/70 text-amber-900' : 'bg-slate-100 text-slate-600'}`}>
+                      Tanah Lunak/Labil
+                    </span>
+                  </div>
+                </button>
+              );
+            })()}
+          </div>
+
+          {/* Explanation Info Box */}
+          <div className="mt-3 p-3 rounded-lg bg-amber-50/60 border border-amber-200/80 flex items-start gap-2.5 text-xs">
+            <span className="text-amber-700 mt-0.5">
+              <Boxes className="w-4 h-4" />
+            </span>
+            <div className="text-slate-700 text-[11px] leading-relaxed">
+              <strong className="text-slate-900 font-semibold">Dampak Penyesuaian Otomatis: </strong>
+              Memilih antara <strong className="text-amber-900">Footplat</strong> dan <strong className="text-amber-900">Cakar Ayam</strong> langsung memperbarui kebutuhan <strong className="text-slate-900">Besi Beton D12</strong> (panjang tulangan & begel), <strong className="text-slate-900">Batu Split</strong>, <strong className="text-slate-900">Pasir Beton</strong>, serta jumlah <strong className="text-slate-900">Semen 50kg</strong> pada Bill of Quantities (BoQ) dan Daftar Material Takeoff.
+            </div>
+          </div>
         </div>
       </div>
 

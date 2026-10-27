@@ -8,7 +8,11 @@ export type WallMaterialType = 'hebel' | 'bata_merah';
 
 export type CeilingMaterialType = 'gypsum' | 'pvc';
 
+export type FoundationType = 'batu_kali' | 'footplat' | 'cakar_ayam' | 'strauss_pile';
+
 export type CementBagWeight = 40 | 50;
+
+export type AcianBagWeight = 40 | 50;
 
 export type ScopeMode = 
   | 'upah_ngaci_tanpa_plafon'   // 1. Borongan Upah Tenaga Saja s/d Ngaci (Tanpa Plafon)
@@ -122,8 +126,9 @@ export interface SavedProject {
   createdAt: string;
   updatedAt: string;
   
-  // Cement bag standard (User requested 50kg)
+  // Cement bag standard (User requested 50kg for Portland & Acian)
   cementBagWeight: CementBagWeight;
+  acianBagWeight?: AcianBagWeight; // Semen acian 50kg vs 40kg (default 50kg)
 
   // Dimensions
   floors: FloorType;
@@ -134,6 +139,7 @@ export interface SavedProject {
   wallHeight: number; // m (e.g. 3.0 to 4.5 m)
   wallType: WallMaterialType;
   ceilingType?: CeilingMaterialType; // 'gypsum' | 'pvc' (default 'gypsum')
+  foundationType?: FoundationType; // 'batu_kali' | 'footplat' | 'cakar_ayam' | 'strauss_pile'
 
   // Floor Plan Rooms & Sync
   useFloorPlanSync: boolean;
@@ -152,6 +158,72 @@ export interface SavedProject {
   // Custom Prices overrides
   materialPriceOverrides: Record<string, number>;
   laborRateOverrides: Record<string, number>;
+
+  // Regional Labor Wage Database & Manual Overrides
+  operationalRegionId?: string; // e.g. 'jabodetabek', 'jawa_barat', 'jawa_tengah', 'diy', 'jawa_timur', 'bali', etc.
+  customWorkerWages?: Partial<WorkerWageRates>; // Manual input upah tukang & kenek per OH
+
+  // Project Schedule & S-Curve Configuration
+  scheduleStartDate?: string; // YYYY-MM-DD
+  scheduleDurationWeeks?: number; // Manual override durasi total minggu (optional)
+  actualProgressPerWeek?: Record<number, number>; // Progres riil lapangan per minggu (minggu ke-X -> %)
+}
+
+export interface WorkerWageRates {
+  mandor: number;         // OH (Orang Hari)
+  kepalaTukang: number;   // OH
+  tukangBatu: number;     // OH
+  tukangKayu: number;     // OH
+  tukangBesi: number;     // OH
+  tukangCat: number;      // OH
+  tukangListrik: number;  // OH
+  tukangPipa: number;     // OH
+  tukangAtap: number;     // OH
+  pekerja: number;        // OH (Kenek / Laden)
+  boronganM2Full?: number; // Upah borongan m² bangun penuh
+  boronganM2Ngaci?: number; // Upah borongan m² s/d ngaci
+}
+
+export interface RegionalWageBenchmark {
+  id: string;
+  name: string;
+  province: string;
+  tier: string;
+  notes: string;
+  rates: WorkerWageRates;
+}
+
+export interface MilestoneScheduleItem {
+  week: number;
+  title: string;
+  description: string;
+  targetPercent: number;
+  status: 'upcoming' | 'current' | 'completed';
+}
+
+export interface ScheduleWeekData {
+  weekNumber: number;
+  weekLabel: string;
+  startDateFormatted: string;
+  endDateFormatted: string;
+  plannedWeeklyPercent: number;     // Bobot rencana minggu ini (%)
+  plannedCumulativePercent: number; // Bobot rencana kumulatif (%)
+  actualWeeklyPercent?: number;     // Progres aktual minggu ini (%)
+  actualCumulativePercent?: number; // Progres aktual kumulatif (%)
+  divisionWeights: Record<AHSPDivisionId, number>; // Bobot % divisi minggu ini
+  milestoneTitle?: string;
+}
+
+export interface ProjectScheduleAnalysis {
+  totalWeeks: number;
+  totalMonths: string;
+  estimatedWorkingDays: number;
+  startDate: string;
+  weeks: ScheduleWeekData[];
+  milestones: MilestoneScheduleItem[];
+  peakWeekNumber: number;
+  averageWeeklyWeight: number;
+  criticalPathNotes: string[];
 }
 
 export interface PhysicalMaterialRequirement {
@@ -185,6 +257,54 @@ export interface BoQCategory {
   totalCost: number;
 }
 
+export interface AHSPCoefficient {
+  code: string;
+  name: string;
+  category: 'upah' | 'bahan';
+  unit: string;
+  coefficient: number;
+  unitPrice: number;
+  totalCost: number;
+}
+
+export type AHSPDivisionId = 
+  | 'persiapan_tanah' 
+  | 'struktur' 
+  | 'pasangan_finishing' 
+  | 'atap_plafon' 
+  | 'me_elektrikal';
+
+export interface AHSPItemAnalysis {
+  id: string;
+  codeSNI: string;
+  name: string;
+  divisionId: AHSPDivisionId;
+  divisionTitle: string;
+  unit: string;
+  volume: number;
+  materialUnitCost: number;
+  laborUnitCost: number;
+  unitPrice: number; // HPP per satuan
+  totalMaterialCost: number;
+  totalLaborCost: number;
+  totalCost: number; // HPP total
+  clientUnitPrice: number; // Harga Satuan Penawaran Klien (termasuk alokasi margin)
+  clientTotalCost: number; // Total Penawaran Klien
+  coefficients: AHSPCoefficient[];
+}
+
+export interface AHSPDivision {
+  id: AHSPDivisionId;
+  title: string;
+  subtitle: string;
+  order: number;
+  items: AHSPItemAnalysis[];
+  totalMaterialCost: number;
+  totalLaborCost: number;
+  totalHPP: number;
+  clientTotalCost: number;
+}
+
 export interface CalculationBreakdown {
   totalBuildingArea: number; // m²
   groundArea: number; // m²
@@ -196,9 +316,17 @@ export interface CalculationBreakdown {
   ceilingType: CeilingMaterialType;
   floorTileArea: number; // m²
   
+  // Foundation stats
+  foundationType: FoundationType;
+  foundationPoints: number;
+  foundationConcreteVol: number; // m³ cor tapak
+  foundationBesiBatang: number; // batang besi cor tapak
+  
   // Cement bag stats
   cementBagWeight: CementBagWeight;
   totalCementBags: number;
+  acianBagWeight: AcianBagWeight;
+  totalAcianBags: number;
 
   // Floor plan stats
   isSyncedWithFloorPlan: boolean;
@@ -225,4 +353,14 @@ export interface CalculationBreakdown {
   // Categories & Details
   categories: BoQCategory[];
   materialRequirements: PhysicalMaterialRequirement[];
+  
+  // Official AHSP Divisions (5 Standard Indonesian Divisions)
+  ahspDivisions?: AHSPDivision[];
+  ahspItems?: AHSPItemAnalysis[];
+
+  // Effective Labor Wages used in this calculation
+  effectiveWorkerWages?: WorkerWageRates;
+
+  // Project Schedule & S-Curve Analysis
+  schedule?: ProjectScheduleAnalysis;
 }

@@ -12,6 +12,7 @@ import { MaterialTakeoffList } from './components/MaterialTakeoffList';
 import { BoQTable } from './components/BoQTable';
 import { ProjectManager } from './components/ProjectManager';
 import { PrintableRABReport } from './components/PrintableRABReport';
+import { AHSPInspector } from './components/AHSPInspector';
 import { ShareAndAndroidModal } from './components/ShareAndAndroidModal';
 import { 
   Building2, 
@@ -35,7 +36,7 @@ import {
 export default function App() {
   const [savedProjects, setSavedProjects] = useState<SavedProject[]>([]);
   const [currentProject, setCurrentProject] = useState<SavedProject>(() => normalizeProject(DEFAULT_PROJECT));
-  const [activeTab, setActiveTab] = useState<'kalkulator' | 'paket' | 'denah' | 'material' | 'takeoff' | 'boq' | 'proyek' | 'cetak'>('kalkulator');
+  const [activeTab, setActiveTab] = useState<'kalkulator' | 'paket' | 'ahsp' | 'denah' | 'material' | 'takeoff' | 'boq' | 'proyek' | 'cetak'>('kalkulator');
   const [quickSaveNotice, setQuickSaveNotice] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
 
@@ -117,6 +118,16 @@ export default function App() {
             >
               <Table2 className="w-3.5 h-3.5" />
               <span>Bandingkan Paket</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('ahsp')}
+              className={`hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 ${
+                activeTab === 'ahsp' ? 'text-amber-700 font-bold border-b-2 border-amber-600 py-4 -mb-4' : ''
+              }`}
+            >
+              <Calculator className="w-3.5 h-3.5 text-amber-600" />
+              <span>Analisa AHSP (SNI)</span>
             </button>
             <button
               type="button"
@@ -210,6 +221,7 @@ export default function App() {
         {[
           { id: 'kalkulator', label: 'Kalkulator' },
           { id: 'paket', label: 'Bandingkan Paket' },
+          { id: 'ahsp', label: 'Analisa AHSP' },
           { id: 'denah', label: 'Denah Rumah' },
           { id: 'material', label: 'Harga Material' },
           { id: 'takeoff', label: 'Kebutuhan Fisik' },
@@ -270,17 +282,17 @@ export default function App() {
               </span>
             </div>
 
-            {/* Keperluan Semen 50kg */}
+            {/* Keperluan Semen */}
             <div className="pt-2 md:pt-0 md:pl-4">
               <span className="text-[11px] font-semibold text-amber-800 uppercase tracking-wider block flex items-center gap-1">
                 <PackageCheck className="w-3.5 h-3.5" />
-                <span>Kebutuhan Semen 50kg</span>
+                <span>Kebutuhan Semen Sak</span>
               </span>
               <div className="text-base sm:text-lg font-bold text-amber-900 font-mono tabular-nums mt-0.5">
-                {calculation.totalCementBags} Sak
+                {calculation.totalCementBags} Sak Cor/Spesi
               </div>
               <span className="text-[10px] text-amber-700 font-medium">
-                Sak 50 Kg (Cor, Spesi & Plester)
+                Portland {currentProject.cementBagWeight || 50}kg + {calculation.totalAcianBags} Sak Acian {currentProject.acianBagWeight || 50}kg
               </span>
             </div>
 
@@ -345,6 +357,15 @@ export default function App() {
                   >
                     <Table2 className="w-3.5 h-3.5 text-slate-950" />
                     <span>Bandingkan Paket Borongan</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('ahsp')}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white font-bold rounded-lg transition-colors shadow-xs"
+                  >
+                    <Calculator className="w-3.5 h-3.5 text-amber-300" />
+                    <span>Analisa AHSP (SNI)</span>
                   </button>
 
                   <button
@@ -509,6 +530,17 @@ export default function App() {
           </div>
         )}
 
+        {/* ANALISA HARGA SATUAN PEKERJAAN (AHSP SNI - 5 DIVISI RESMI) */}
+        {activeTab === 'ahsp' && (
+          <div className="space-y-6">
+            <AHSPInspector
+              project={currentProject}
+              calculation={calculation}
+              onNavigateToPrint={() => setActiveTab('cetak')}
+            />
+          </div>
+        )}
+
         {/* DENAH RUMAH (NEW INTERACTIVE FLOOR PLAN DESIGNER) */}
         {activeTab === 'denah' && (
           <div className="space-y-6">
@@ -543,6 +575,8 @@ export default function App() {
             <BoQTable
               calculation={calculation}
               isLaborOnly={isLaborOnly}
+              onNavigateToAHSP={() => setActiveTab('ahsp')}
+              onNavigateToPrint={() => setActiveTab('cetak')}
             />
           </div>
         )}

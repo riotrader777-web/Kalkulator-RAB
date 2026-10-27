@@ -11,13 +11,19 @@ import {
   PhysicalMaterialRequirement, 
   ScopeOptions,
   ScopeMode,
-  PackageComparisonItem
+  PackageComparisonItem,
+  FoundationType
 } from '../types/rab';
+import { calculateAHSPAnalysis } from './ahspCalculator';
+import { calculateProjectSchedule } from './scheduleCalculator';
+import { getEffectiveWorkerWages } from '../data/regionalWages';
 
 export function calculateRAB(project: SavedProject): CalculationBreakdown {
-  // 1. Resolve Cement Standard (User requested 50kg bags)
+  // 1. Resolve Cement Standard (User requested 50kg bags for Portland & Acian)
   const bagWeight = project.cementBagWeight || 50; // 50 kg per sak
+  const acianBagWeight = project.acianBagWeight || 50; // 50 kg per sak (default 50kg)
   const cementMaterialId = 'semen_portland_50kg';
+  const acianMaterialId = acianBagWeight === 50 ? 'semen_acian_50kg' : 'semen_acian_instant';
 
   // 2. Resolve Effective Material Prices
   const getMaterialPrice = (id: string): number => {
@@ -30,11 +36,23 @@ export function calculateRAB(project: SavedProject): CalculationBreakdown {
     return item ? item.defaultPrice : 0;
   };
 
-  // 3. Resolve Effective Labor Rates
+  // 3. Resolve Effective Labor Rates (from Regional Database or Manual Custom Overrides)
+  const effectiveWages = getEffectiveWorkerWages(project);
   const getLaborRate = (id: string): number => {
     if (project.laborRateOverrides && project.laborRateOverrides[id] !== undefined) {
       return project.laborRateOverrides[id];
     }
+    if (id === 'upah_borongan_m2_full' && effectiveWages.boronganM2Full) {
+      return effectiveWages.boronganM2Full;
+    }
+    if (id === 'upah_borongan_m2_ngaci' && effectiveWages.boronganM2Ngaci) {
+      return effectiveWages.boronganM2Ngaci;
+    }
+    if (id === 'tukang_kepala') return effectiveWages.kepalaTukang;
+    if (id === 'tukang_batu') return effectiveWages.tukangBatu;
+    if (id === 'tukang_besi_kayu') return effectiveWages.tukangBesi;
+    if (id === 'pekerja_kenek') return effectiveWages.pekerja;
+
     const item = DEFAULT_LABOR_RATES.find(l => l.id === id);
     return item ? item.defaultRate : 0;
   };
@@ -206,13 +224,20 @@ export function calculateRAB(project: SavedProject): CalculationBreakdown {
     materialsMap[targetId].qty += qty;
   };
 
-  // Tracking total cement bags (50kg)
+  // Tracking total cement bags (50kg) & acian bags
   let totalPortlandCementBags = 0;
+  let totalAcianBags = 0;
 
   // ----------------------------------------------------
   // DETAILED BOQ CATEGORIES COMPUTATION
   // ----------------------------------------------------
   const categories: BoQCategory[] = [];
+
+  // Foundation Type Configuration
+  const foundationType: FoundationType = project.foundationType || (floors === 2 ? 'cakar_ayam' : 'footplat');
+  let finalFootplatePoints = 0;
+  let finalFootplateConcreteVol = 0;
+  let finalBesiFootplateBatang = 0;
 
   // 1. PONDASI & PEKERJAAN TANAH
   {
@@ -220,12 +245,80 @@ export function calculateRAB(project: SavedProject): CalculationBreakdown {
     let matCost = 0;
     let labCost = 0;
 
-    const excavationVol = approxPerimeter * 0.8 * 0.8;
+    const excavationDepth = foundationType === 'batu_kali' ? 0.75 : 0.85;
+    const excavationVol = approxPerimeter * 0.8 * excavationDepth;
     const sandUrugVol = approxPerimeter * 0.8 * 0.1 + (groundArea * 0.05);
-    const batuKaliVol = approxPerimeter * 0.6 * 0.7;
 
-    const footplatePoints = floors === 2 ? Math.max(12, Math.round(groundArea / 5.5)) : 0;
-    const footplateConcreteVol = footplatePoints * (0.8 * 0.8 * 0.25);
+    // Dimensi batu kali menerus: jika tanpa footplate (batu kali murni), profil batu kali dibuat lebih besar untuk menahan seluruh beban
+    const batuKaliVol = foundationType === 'batu_kali'
+      ? approxPerimeter * 0.65 * 0.75
+      : approxPerimeter * 0.55 * 0.65;
+
+    // Titik tumpu struktur (footplat / cakar ayam / strauss pile)
+    let points = 0;
+    let concreteVolPerPoint = 0;
+    let besiBatangPerPoint = 0; // Batang Besi D12 per titik
+    let bendratKgPerPoint = 0;
+    let matCostPerPoint = 0;
+    let laborCostPerPoint = 0;
+    let foundationSubItemName = '';
+
+    if (foundationType === 'batu_kali') {
+      points = 0;
+      concreteVolPerPoint = 0;
+      besiBatangPerPoint = 0;
+    } else if (foundationType === 'footplat') {
+      points = Math.max(6, Math.round(groundArea / 5.5));
+      if (floors === 2) {
+        // Footplat 80x80x25cm dengan leher kolom pendek
+        concreteVolPerPoint = 0.16; // 0.8*0.8*0.25 m³
+        besiBatangPerPoint = 3.5;   // ~3.5 btg besi D12
+        bendratKgPerPoint = 0.75;
+        matCostPerPoint = 420000;
+        laborCostPerPoint = 250000;
+        foundationSubItemName = `Pondasi Footplat / Telapak Plat Beton (80x80cm, Besi D12)`;
+      } else {
+        // Footplat 60x60x20cm 1 lantai
+        concreteVolPerPoint = 0.095; // 0.6*0.6*0.20 + leher kolom
+        besiBatangPerPoint = 2.4;    // ~2.4 btg besi D10/D12
+        bendratKgPerPoint = 0.5;
+        matCostPerPoint = 260000;
+        laborCostPerPoint = 160000;
+        foundationSubItemName = `Pondasi Footplat / Telapak Plat Beton (60x60cm, 1 Lantai)`;
+      }
+    } else if (foundationType === 'cakar_ayam') {
+      points = Math.max(6, Math.round(groundArea / 5.5));
+      if (floors === 2) {
+        // Cakar ayam 100x100x30cm tulangan dobel / cakar pipa angkur
+        concreteVolPerPoint = 0.25;  // 1.0*1.0*0.25 m³
+        besiBatangPerPoint = 5.2;    // dobel mesh + cakar pengaku
+        bendratKgPerPoint = 1.1;
+        matCostPerPoint = 620000;
+        laborCostPerPoint = 350000;
+        foundationSubItemName = `Pondasi Cakar Ayam Tulangan Dobel Grid (100x100cm, 2 Lantai)`;
+      } else {
+        // Cakar ayam 80x80x25cm
+        concreteVolPerPoint = 0.16;
+        besiBatangPerPoint = 4.0;
+        bendratKgPerPoint = 0.85;
+        matCostPerPoint = 420000;
+        laborCostPerPoint = 250000;
+        foundationSubItemName = `Pondasi Cakar Ayam Tulangan Dobel Grid (80x80cm, 1 Lantai)`;
+      }
+    } else if (foundationType === 'strauss_pile') {
+      // Strauss pile bor manual kedalaman 4 meter + pile cap 60x60x30cm
+      points = Math.max(6, Math.round(groundArea / 5.5));
+      concreteVolPerPoint = 0.304; // 0.108m³ pile cap + 0.196m³ tiang bor Ø25cm
+      besiBatangPerPoint = 5.5;    // Tulangan utama tiang bor + spiral sengkang
+      bendratKgPerPoint = 1.2;
+      matCostPerPoint = 750000;
+      laborCostPerPoint = 450000; // termasuk upah jasa bor tanah manual per titik
+      foundationSubItemName = `Pondasi Strauss Pile (Tiang Bor Manual Ø25cm Kedalaman 4m + Pile Cap)`;
+    }
+
+    finalFootplatePoints = points;
+    finalFootplateConcreteVol = points * concreteVolPerPoint;
+    finalBesiFootplateBatang = Math.round(points * besiBatangPerPoint);
 
     if (activeScopes.pondasi) {
       addMaterialQty('pasir_urug', sandUrugVol, 'Urugan pasir dasar pondasi & bawah lantai');
@@ -239,26 +332,25 @@ export function calculateRAB(project: SavedProject): CalculationBreakdown {
       addMaterialQty('pasir_pasang', pasirPondasiM3, 'Pasir spesi pondasi');
       totalPortlandCementBags += semenPondasiSak;
 
-      if (floors === 2) {
-        // Cakar ayam: Besi 12mm & 10mm + Cor
-        const besiFootplateBatang = footplatePoints * 3.5;
-        const bendratFootplateKg = footplatePoints * 0.75;
-        const splitFootplateM3 = footplateConcreteVol * 0.82;
-        const pasirBetonFootplateM3 = footplateConcreteVol * 0.54;
-        // Cor K-225 mutu footplate: ~340 kg semen / m³ => 340 / 50 = 6.8 sak 50kg
-        const semenFootplateSak = Math.ceil(footplateConcreteVol * (340 / bagWeight));
+      if (points > 0) {
+        // Material tapak / cakar ayam / strauss pile cor beton & besi
+        const bendratFootplateKg = points * bendratKgPerPoint;
+        const splitFootplateM3 = finalFootplateConcreteVol * 0.82;
+        const pasirBetonFootplateM3 = finalFootplateConcreteVol * 0.54;
+        // Cor K-225 mutu pondasi: ~340 kg semen / m³
+        const semenFootplateSak = Math.ceil(finalFootplateConcreteVol * (340 / bagWeight));
 
-        addMaterialQty('besi_12mm', besiFootplateBatang, 'Tulangan tapak pondasi cakar ayam');
-        addMaterialQty('kawat_bendrat', bendratFootplateKg, 'Pengikat tulangan cakar ayam');
-        addMaterialQty('batu_split', splitFootplateM3, 'Cor beton mutu tapak cakar ayam');
-        addMaterialQty('pasir_beton', pasirBetonFootplateM3, 'Pasir cor cakar ayam');
-        addMaterialQty(cementMaterialId, semenFootplateSak, `Semen ${bagWeight}kg cor tapak cakar ayam`);
+        addMaterialQty('besi_12mm', finalBesiFootplateBatang, `Tulangan baja tapak ${foundationSubItemName}`);
+        addMaterialQty('kawat_bendrat', bendratFootplateKg, 'Pengikat tulangan pondasi cor');
+        addMaterialQty('batu_split', splitFootplateM3, 'Kerikil / split cor beton pondasi');
+        addMaterialQty('pasir_beton', pasirBetonFootplateM3, 'Pasir cor beton pondasi');
+        addMaterialQty(cementMaterialId, semenFootplateSak, `Semen ${bagWeight}kg cor beton pondasi (${points} titik)`);
         totalPortlandCementBags += semenFootplateSak;
       }
 
       const batuKaliCost = isLaborOnly ? 0 : batuKaliVol * getMaterialPrice('batu_kali');
       const pasirUrugCost = isLaborOnly ? 0 : sandUrugVol * getMaterialPrice('pasir_urug');
-      const upahPondasi = (excavationVol * 95000) + (batuKaliVol * 185000) + (footplatePoints * 250000);
+      const upahPondasi = (excavationVol * 95000) + (batuKaliVol * 185000) + (points * laborCostPerPoint);
 
       matCost += batuKaliCost + pasirUrugCost;
       labCost += upahPondasi;
@@ -274,7 +366,7 @@ export function calculateRAB(project: SavedProject): CalculationBreakdown {
       });
 
       subItems.push({
-        name: 'Pondasi Batu Belah / Kali Menerus',
+        name: foundationType === 'batu_kali' ? 'Pondasi Batu Kali Menerus Penahan Beban Utama' : 'Pondasi Pasangan Batu Belah / Kali Rollag',
         volume: Number(batuKaliVol.toFixed(2)),
         unit: 'm³',
         materialCost: batuKaliCost,
@@ -283,19 +375,19 @@ export function calculateRAB(project: SavedProject): CalculationBreakdown {
         totalCost: batuKaliCost + (batuKaliVol * 185000),
       });
 
-      if (floors === 2) {
-        const cakarAyamCost = isLaborOnly ? 0 : footplatePoints * 420000;
-        const cakarAyamLabor = footplatePoints * 250000;
-        matCost += cakarAyamCost;
-        labCost += cakarAyamLabor;
+      if (points > 0) {
+        const itemMatCost = isLaborOnly ? 0 : points * matCostPerPoint;
+        const itemLaborCost = points * laborCostPerPoint;
+        matCost += itemMatCost;
+        labCost += itemLaborCost;
         subItems.push({
-          name: `Pondasi Cakar Ayam / Footplate (80x80cm)`,
-          volume: footplatePoints,
+          name: foundationSubItemName,
+          volume: points,
           unit: 'titik',
-          materialCost: cakarAyamCost,
-          laborCost: cakarAyamLabor,
-          unitPrice: Number(((cakarAyamCost + cakarAyamLabor) / footplatePoints).toFixed(0)),
-          totalCost: cakarAyamCost + cakarAyamLabor,
+          materialCost: itemMatCost,
+          laborCost: itemLaborCost,
+          unitPrice: Number(((itemMatCost + itemLaborCost) / points).toFixed(0)),
+          totalCost: itemMatCost + itemLaborCost,
         });
       }
     }
@@ -451,13 +543,21 @@ export function calculateRAB(project: SavedProject): CalculationBreakdown {
         // Plesteran: ~6.2 kg semen portland / m² plesteran => Sak 50kg: 6.2/50 = 0.124 sak/m²
         const semenPlesterSak = Math.ceil(plasterSkimcoatArea * (6.2 / bagWeight));
         const pasirPlesterM3 = Number((plasterSkimcoatArea * 0.022).toFixed(1));
-        const semenAcianSak = Math.ceil(plasterSkimcoatArea / 17);
+        
+        // Acian: Daya sebar sak 50kg ± 21 m², sak 40kg ± 17 m²
+        const acianCoveragePerSak = acianBagWeight === 50 ? 21 : 17;
+        const semenAcianSak = Math.ceil(plasterSkimcoatArea / acianCoveragePerSak);
 
         totalPortlandCementBags += semenPlesterSak;
+        totalAcianBags += semenAcianSak;
 
         addMaterialQty(cementMaterialId, semenPlesterSak, `Semen ${bagWeight}kg plesteran dinding 2 sisi`);
         addMaterialQty('pasir_pasang', pasirPlesterM3, 'Pasir pasang halus plesteran dinding');
-        addMaterialQty('semen_acian_instant', semenAcianSak, 'Semen acian instan skimcoat anti retak');
+        addMaterialQty(
+          acianMaterialId, 
+          semenAcianSak, 
+          `Semen acian instan skimcoat anti retak (${acianBagWeight}kg/sak)`
+        );
 
         const hebelMat = isLaborOnly ? 0 : 
           (hebelVol * getMaterialPrice('bata_ringan_hebel')) + 
@@ -466,7 +566,7 @@ export function calculateRAB(project: SavedProject): CalculationBreakdown {
         const plesterAciMat = isLaborOnly ? 0 :
           (semenPlesterSak * getMaterialPrice(cementMaterialId)) +
           (pasirPlesterM3 * getMaterialPrice('pasir_pasang')) +
-          (semenAcianSak * getMaterialPrice('semen_acian_instant'));
+          (semenAcianSak * getMaterialPrice(acianMaterialId));
 
         const upahPasangDinding = netWallArea * 35000;
         const upahPlesterAci = netWallArea * 45000;
@@ -508,13 +608,21 @@ export function calculateRAB(project: SavedProject): CalculationBreakdown {
 
         const semenPlesterSak = Math.ceil(plasterSkimcoatArea * (8.0 / bagWeight));
         const pasirPlesterM3 = Number((plasterSkimcoatArea * 0.026).toFixed(1));
-        const semenAcianSak = Math.ceil(plasterSkimcoatArea / 16);
+        
+        // Acian bata merah: Sak 50kg ± 20 m², sak 40kg ± 16 m²
+        const acianCoveragePerSakBata = acianBagWeight === 50 ? 20 : 16;
+        const semenAcianSak = Math.ceil(plasterSkimcoatArea / acianCoveragePerSakBata);
 
         totalPortlandCementBags += semenPlesterSak;
+        totalAcianBags += semenAcianSak;
 
         addMaterialQty(cementMaterialId, semenPlesterSak, `Semen ${bagWeight}kg plesteran dinding bata merah`);
         addMaterialQty('pasir_pasang', pasirPlesterM3, 'Pasir plesteran halus dinding');
-        addMaterialQty('semen_acian_instant', semenAcianSak, 'Semen acian instan skimcoat');
+        addMaterialQty(
+          acianMaterialId, 
+          semenAcianSak, 
+          `Semen acian instan skimcoat (${acianBagWeight}kg/sak)`
+        );
 
         const bataMat = isLaborOnly ? 0 : 
           (bataMerahPcs * getMaterialPrice('bata_merah_press')) +
@@ -524,7 +632,7 @@ export function calculateRAB(project: SavedProject): CalculationBreakdown {
         const plesterAciMat = isLaborOnly ? 0 :
           (semenPlesterSak * getMaterialPrice(cementMaterialId)) +
           (pasirPlesterM3 * getMaterialPrice('pasir_pasang')) +
-          (semenAcianSak * getMaterialPrice('semen_acian_instant'));
+          (semenAcianSak * getMaterialPrice(acianMaterialId));
 
         const upahPasangBata = netWallArea * 40000;
         const upahPlesterAci = netWallArea * 48000;
@@ -1074,7 +1182,7 @@ export function calculateRAB(project: SavedProject): CalculationBreakdown {
     };
   });
 
-  return {
+  const baseResult: CalculationBreakdown = {
     totalBuildingArea,
     groundArea,
     secondFloorArea,
@@ -1083,9 +1191,15 @@ export function calculateRAB(project: SavedProject): CalculationBreakdown {
     roofArea: Number(roofArea.toFixed(1)),
     ceilingArea: Number(ceilingArea.toFixed(1)),
     ceilingType: project.ceilingType || 'gypsum',
+    foundationType,
+    foundationPoints: finalFootplatePoints,
+    foundationConcreteVol: Number(finalFootplateConcreteVol.toFixed(2)),
+    foundationBesiBatang: finalBesiFootplateBatang,
     floorTileArea: Number(floorTileArea.toFixed(1)),
     cementBagWeight: bagWeight,
     totalCementBags: totalPortlandCementBags,
+    acianBagWeight,
+    totalAcianBags,
     isSyncedWithFloorPlan: isFloorPlanSyncActive,
     roomCount: project.floorPlanRooms ? project.floorPlanRooms.length : 0,
     bathroomCount: isFloorPlanSyncActive ? customBathroomCount : (floors === 2 ? 2 : 1),
@@ -1103,6 +1217,14 @@ export function calculateRAB(project: SavedProject): CalculationBreakdown {
     categories,
     materialRequirements,
   };
+
+  const ahspAnalysis = calculateAHSPAnalysis(project, baseResult);
+  baseResult.ahspDivisions = ahspAnalysis.divisions;
+  baseResult.ahspItems = ahspAnalysis.allItems;
+  baseResult.effectiveWorkerWages = effectiveWages;
+  baseResult.schedule = calculateProjectSchedule(project, baseResult);
+
+  return baseResult;
 }
 
 export function formatRupiah(amount: number): string {
